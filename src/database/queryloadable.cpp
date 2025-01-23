@@ -1,10 +1,11 @@
 #include "queryloadable.h"
 
 #include <QDateTime>
+#include <QTimeZone>
 
 QDateTime QueryLoadable::utcTime(const QVariant& value)
 {
     QDateTime timestamp = value.toDateTime();
-    timestamp.setTimeSpec(Qt::UTC);
+    timestamp.setTimeZone(QTimeZone::utc());
     return timestamp;
 }

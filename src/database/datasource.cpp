@@ -1,6 +1,10 @@
 #include "datasource.h"
+#include "sqlparser.h"
 #include <Kanoop/commonexception.h>
+#include <Kanoop/datetimeutil.h>
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QThread>
@@ -33,14 +37,20 @@ bool DataSource::openConnection()
             _db.setPassword(_credentials.password());
         }
         else {
-            if(QFile(_credentials.schema()).exists() == false) {
-                throw CommonException(QString("Failed to find sqlite database at %1").arg(_credentials.schema()));
+            // Special initialization for sqlite
+            QFileInfo fileInfo(_credentials.schema());
+            if(fileInfo.absoluteDir().exists() == false && QDir().mkpath(fileInfo.absolutePath()) == false) {
+                throw CommonException(QString("Failed to create path '%1'").arg(fileInfo.absolutePath()));
+            }
+
+            if(fileInfo.exists() == false) {
+                createSqliteDatabase();
             }
         }
 
         _db.setDatabaseName(_credentials.schema());
 
-        if(_db.open() == false) {
+        if(_db.isOpen() == false && _db.open() == false) {
             throw CommonException("Database open failed");
         }
 
@@ -82,8 +92,21 @@ bool DataSource::closeConnection()
 
 QString DataSource::errorText() const
 {
-    return QString("%1 (Driver error: %2) (Native error: %3)")
-            .arg(_databaseError).arg(_driverError).arg(_nativeError);
+    QString result;
+    QTextStream output(&result);
+    if(_dataSourceError.isEmpty() == false) {
+        output << "(Data Source Error: " << _dataSourceError << ") ";
+    }
+    if(_databaseError.isEmpty() == false) {
+        output << "(DB Error: " << _databaseError << ") ";
+    }
+    if(_driverError.isEmpty() == false) {
+        output << "(Driver Error: " << _driverError << ") ";
+    }
+    if(_nativeError.isEmpty() == false) {
+        output << "(Native Error: " << _nativeError << ") ";
+    }
+    return result;
 }
 
 QSqlQuery DataSource::prepareQuery(const QString& sql, bool* success)
@@ -149,8 +172,13 @@ void DataSource::logFailure(const QSqlQuery& query) const
 QDateTime DataSource::utcTime(const QVariant& value)
 {
     QDateTime timestamp = value.toDateTime();
-    timestamp.setTimeSpec(Qt::UTC);
+    timestamp.setTimeZone(QTimeZone::utc());
     return timestamp;
+}
+
+QString DataSource::currentTimestamp()
+{
+    return DateTimeUtil::currentToStandardString();
 }
 
 void DataSource::checkExecutingThread() const
@@ -168,4 +196,30 @@ void DataSource::recordQueryError(const QSqlQuery& query)
     _driverError = query.lastError().driverText();
     _databaseError = query.lastError().databaseText();
     _nativeError = query.lastError().nativeErrorCode();
+}
+
+void DataSource::createSqliteDatabase()
+{
+    _db.setDatabaseName(_credentials.schema());
+    if(_db.open() == false) {
+        throw CommonException("Failed to open");
+    }
+
+    QString sql = createSql();
+    if(sql.isEmpty()) {
+        throw CommonException("No createSql() implemented for dynamic creation");
+    }
+
+    SqlParser parser(sql);
+    if(parser.isValid() == false) {
+        throw CommonException(QString("Failed to parse create SQL\n%1").arg(sql));
+    }
+
+    for(const QString& statement : parser.statements()) {
+        bool result;
+        executeQuery(statement, &result);
+        if(result == false) {
+            throw CommonException("Failed to execute a create statement");
+        }
+    }
 }
