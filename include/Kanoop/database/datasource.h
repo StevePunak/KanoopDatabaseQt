@@ -47,19 +47,25 @@ protected:
     bool executeQuery(QSqlQuery& query);
     bool querySuccessful(const QSqlQuery& query);
 
+    virtual QString createSql() const { return QString(); }
+
     void logFailure(const QSqlQuery& query) const;
+    void setDataSourceError(const QString& value) { _dataSourceError = value; }
 
     static QDateTime utcTime(const QVariant& value);
+    static QString currentTimestamp();
 
     QSqlDatabase _db;
 
 private:
     void checkExecutingThread() const;
     void recordQueryError(const QSqlQuery& query);
+    void createSqliteDatabase();
 
     DatabaseCredentials _credentials;
     QString _connectionName;
 
+    QString _dataSourceError;
     QString _driverError;
     QString _databaseError;
     QString _nativeError;

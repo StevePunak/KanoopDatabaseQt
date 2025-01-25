@@ -16,6 +16,8 @@ public:
     DatabaseCredentials() {}
     DatabaseCredentials(const QString& host, const QString& schema, const QString& username, const QString& password, const QString& engine) :
         _host(host), _schema(schema), _username(username), _password(password), _engine(engine) {}
+    DatabaseCredentials(const QString& schema) :
+        _schema(schema), _engine(SQLENG_SQLITE) {}
 
     QString host() const { return _host; }
     void setHost(const QString& value) { _host = value; }
