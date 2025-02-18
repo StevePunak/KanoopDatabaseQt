@@ -54,6 +54,11 @@ bool DataSource::openConnection()
             throw CommonException("Database open failed");
         }
 
+        if(_credentials.isSqlite()) {
+            // sqlite does not enable foreign key checking by default
+            setSqliteForeignKeyChecking(true);
+        }
+
         result = true;
     }
     catch(const CommonException& e)
@@ -163,6 +168,11 @@ bool DataSource::querySuccessful(const QSqlQuery& query)
     return result;
 }
 
+void DataSource::logSql(const char* file, int line, Log::LogLevel level, const QString& sql)
+{
+    logText(file, line, level, QString("\n%1").arg(sql));
+}
+
 void DataSource::logFailure(const QSqlQuery& query) const
 {
     logText(LVL_ERROR, QString("QUERY FAILED: %1\nSQL Follows:\n%2")
@@ -222,4 +232,12 @@ void DataSource::createSqliteDatabase()
             throw CommonException("Failed to execute a create statement");
         }
     }
+}
+
+bool DataSource::setSqliteForeignKeyChecking(bool value)
+{
+    QString sql = QString("PRAGMA foreign_keys = %1;").arg(value ? "ON" : "OFF");
+    bool result;
+    executeQuery(sql, &result);
+    return result;
 }

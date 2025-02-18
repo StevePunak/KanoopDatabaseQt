@@ -49,6 +49,7 @@ protected:
 
     virtual QString createSql() const { return QString(); }
 
+    void logSql(const char* file, int line, Log::LogLevel level, const QString& sql);
     void logFailure(const QSqlQuery& query) const;
     void setDataSourceError(const QString& value) { _dataSourceError = value; }
 
@@ -61,6 +62,7 @@ private:
     void checkExecutingThread() const;
     void recordQueryError(const QSqlQuery& query);
     void createSqliteDatabase();
+    bool setSqliteForeignKeyChecking(bool value);
 
     DatabaseCredentials _credentials;
     QString _connectionName;
