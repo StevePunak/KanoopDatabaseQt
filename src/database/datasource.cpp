@@ -59,6 +59,11 @@ bool DataSource::openConnection()
             setSqliteForeignKeyChecking(true);
         }
 
+        // Let sub-class perform migration
+        if(migrate() == false) {
+            throw CommonException("Database migration failed");
+        }
+
         result = true;
     }
     catch(const CommonException& e)
@@ -168,6 +173,18 @@ bool DataSource::querySuccessful(const QSqlQuery& query)
     return result;
 }
 
+bool DataSource::executeMultiple(const QStringList& queries)
+{
+    bool result = false;
+    for(const QString& statement : queries) {
+        executeQuery(statement, &result);
+        if(result == false) {
+            break;
+        }
+    }
+    return result;
+}
+
 void DataSource::logSql(const char* file, int line, Log::LogLevel level, const QString& sql)
 {
     logText(file, line, level, QString("\n%1").arg(sql));
@@ -225,12 +242,8 @@ void DataSource::createSqliteDatabase()
         throw CommonException(QString("Failed to parse create SQL\n%1").arg(sql));
     }
 
-    for(const QString& statement : parser.statements()) {
-        bool result;
-        executeQuery(statement, &result);
-        if(result == false) {
-            throw CommonException("Failed to execute a create statement");
-        }
+    if(executeMultiple(parser.statements()) == false) {
+        throw CommonException("Failed to execute one or more create queries");
     }
 }
 

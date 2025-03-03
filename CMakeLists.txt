@@ -13,7 +13,7 @@ set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(KANOOP_DATABASE_VERSION "1.0.1")
+set(KANOOP_DATABASE_VERSION "1.1.1")
 
 file(GLOB_RECURSE PROJ_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
@@ -37,7 +37,7 @@ target_include_directories(${PROJ} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 get_directory_property(PARENT_DIR PARENT_DIRECTORY)
 target_include_directories(${PROJ} PRIVATE ${PARENT_DIR}/KanoopCommon/include)
 
-target_link_libraries(${PROJ} PRIVATE PRIVATE Qt6::Core Qt6::Sql KanoopCommon)
+target_link_libraries(${PROJ} PRIVATE PRIVATE Qt6::Core Qt6::Sql KanoopCommonQt)
 
 add_compile_definitions(KANOOP_QTGUI_LIBRARY)
 add_compile_definitions(QT_DEPRECATED_WARNINGS)

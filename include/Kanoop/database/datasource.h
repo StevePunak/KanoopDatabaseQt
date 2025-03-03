@@ -47,7 +47,10 @@ protected:
     bool executeQuery(QSqlQuery& query);
     bool querySuccessful(const QSqlQuery& query);
 
+    bool executeMultiple(const QStringList& queries);
+
     virtual QString createSql() const { return QString(); }
+    virtual bool migrate() { return true; }
 
     void logSql(const char* file, int line, Log::LogLevel level, const QString& sql);
     void logFailure(const QSqlQuery& query) const;
