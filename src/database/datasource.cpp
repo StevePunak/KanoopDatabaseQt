@@ -196,6 +196,24 @@ void DataSource::logFailure(const QSqlQuery& query) const
             .arg(errorText()).arg(query.lastQuery()));
 }
 
+bool DataSource::recreateSqliteDatabase()
+{
+    if(_db.isOpen()) {
+        _db.close();
+    }
+
+    try
+    {
+        createSqliteDatabase();
+    }
+    catch(const CommonException& e)
+    {
+        logText(LVL_ERROR, QString("Database recreation failed: %1").arg(e.message()));
+        return false;
+    }
+    return true;
+}
+
 QDateTime DataSource::utcTime(const QVariant& value)
 {
     QDateTime timestamp = value.toDateTime();

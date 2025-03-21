@@ -56,6 +56,10 @@ protected:
     void logFailure(const QSqlQuery& query) const;
     void setDataSourceError(const QString& value) { _dataSourceError = value; }
 
+    bool recreateSqliteDatabase();
+
+    bool isSqlite() const { return _credentials.isSqlite(); }
+
     static QDateTime utcTime(const QVariant& value);
     static QString currentTimestamp();
 
