@@ -51,6 +51,7 @@ protected:
 
     virtual QString createSql() const { return QString(); }
     virtual bool migrate() { return true; }
+    virtual bool integrityCheck() { return true; }
 
     void logSql(const char* file, int line, Log::LogLevel level, const QString& sql);
     void logFailure(const QSqlQuery& query) const;
