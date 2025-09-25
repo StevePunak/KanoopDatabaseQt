@@ -66,8 +66,12 @@ protected:
 
     QSqlDatabase _db;
 
+    static QString commaDelimitedIntList(const QList<int> &list);
+    static QString commaDelimitedUuidList(const QList<QUuid>& list);
+    static QString commaDelimitedStringList(const QStringList& list);
+
 private:
-    void checkExecutingThread() const;
+    bool checkExecutingThread() const;
     void recordQueryError(const QSqlQuery& query);
     void createSqliteDatabase();
     bool setSqliteForeignKeyChecking(bool value);

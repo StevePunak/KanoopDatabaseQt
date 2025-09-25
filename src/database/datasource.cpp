@@ -151,24 +151,24 @@ QSqlQuery DataSource::executeQuery(const QString& sql, bool* success)
 
 bool DataSource::executeQuery(QSqlQuery& query)
 {
-    checkExecutingThread();
-
     bool result;
-    if((result = query.exec()) == false) {
-        recordQueryError(query);
-        logFailure(query);
+    if((result = checkExecutingThread()) == true) {
+        if((result = query.exec()) == false) {
+            recordQueryError(query);
+            logFailure(query);
+        }
     }
     return result;
 }
 
 bool DataSource::querySuccessful(const QSqlQuery& query)
 {
-    checkExecutingThread();
-
     bool result;
-    if((result = query.isActive()) == false) {
-        recordQueryError(query);
-        logFailure(query);
+    if((result = checkExecutingThread()) == true) {
+        if((result = query.isActive()) == false) {
+            recordQueryError(query);
+            logFailure(query);
+        }
     }
     return result;
 }
@@ -226,14 +226,61 @@ QString DataSource::currentTimestamp()
     return DateTimeUtil::currentToStandardString();
 }
 
-void DataSource::checkExecutingThread() const
+QString DataSource::commaDelimitedIntList(const QList<int>& list)
 {
-    if((int64_t)QThread::currentThreadId() != _threadId) {
+    QString result;
+    QTextStream output(&result);
+    for(int i = 0;i < list.length();i++) {
+        output << '\''
+               << list.at(i)
+               << '\'';
+        if(i < list.length() - 1) {
+            output << ',';
+        }
+    }
+    return result;
+}
+
+QString DataSource::commaDelimitedUuidList(const QList<QUuid>& list)
+{
+    QString result;
+    QTextStream output(&result);
+    for(int i = 0;i < list.length();i++) {
+        output << '\''
+               << list.at(i).toString(QUuid::WithoutBraces)
+               << '\'';
+        if(i < list.length() - 1) {
+            output << ',';
+        }
+    }
+    return result;
+}
+
+QString DataSource::commaDelimitedStringList(const QStringList& list)
+{
+    QString result;
+    QTextStream output(&result);
+    for(int i = 0;i < list.length();i++) {
+        output << '\''
+               << list.at(i)
+               << '\'';
+        if(i < list.length() - 1) {
+            output << ',';
+        }
+    }
+    return result;
+}
+
+bool DataSource::checkExecutingThread() const
+{
+    bool result = (int64_t)QThread::currentThreadId() == _threadId;
+    if(result == false) {
         logText(LVL_ERROR, QString(
                     "ERROR: Executing thread for database connection %1 is not the thread use to open the connection. "
                     "QSqlDatabase is not thread-safe.")
                 .arg(_connectionName));
     }
+    return result;
 }
 
 void DataSource::recordQueryError(const QSqlQuery& query)

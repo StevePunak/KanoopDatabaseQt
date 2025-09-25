@@ -17,6 +17,16 @@ public:
 
 protected:
     static QDateTime utcTime(const QVariant& value);
+
+    template <typename T>
+    static T enumFromString(const QString& value)
+    {
+        T result = T{};
+        if(value.length() > 0) {
+            result = static_cast<T>(value.at(0).toLatin1());
+        }
+        return result;
+    }
 };
 
 #endif // QUERYLOADABLE_H
