@@ -69,6 +69,8 @@ protected:
     static QString commaDelimitedIntList(const QList<int> &list);
     static QString commaDelimitedUuidList(const QList<QUuid>& list);
     static QString commaDelimitedStringList(const QStringList& list);
+    static QString escapedString(const QString& unescaped);
+
 
 private:
     bool checkExecutingThread() const;

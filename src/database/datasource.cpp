@@ -271,6 +271,28 @@ QString DataSource::commaDelimitedStringList(const QStringList& list)
     return result;
 }
 
+QString DataSource::escapedString(const QString& unescaped)
+{
+    QString utfString = unescaped.toLocal8Bit();
+    QString result;
+    QTextStream output(&result);
+
+    for(int i = 0;i < utfString.length();i++) {
+        QChar thisChar = utfString.at(i).toLatin1();
+        if(thisChar == '\'') {
+            output << '\'';
+            output << thisChar;
+        }
+        else if(thisChar == 0) {
+            output << '?';
+        }
+        else {
+            output << thisChar;
+        }
+    }
+    return result;
+}
+
 bool DataSource::checkExecutingThread() const
 {
     bool result = (int64_t)QThread::currentThreadId() == _threadId;
