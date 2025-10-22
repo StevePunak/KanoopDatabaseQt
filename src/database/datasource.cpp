@@ -10,6 +10,13 @@
 #include <QThread>
 #include <QUuid>
 
+DataSource::~DataSource()
+{
+    if(isOpen()) {
+        DataSource::closeConnection();
+    }
+}
+
 bool DataSource::openConnection()
 {
     bool result = false;
@@ -44,7 +51,12 @@ bool DataSource::openConnection()
             }
 
             if(fileInfo.exists() == false) {
-                createSqliteDatabase();
+                if(_createOnOpenFailure == true) {
+                    createSqliteDatabase();
+                }
+                else {
+                    throw CommonException("File not found and create disabled");
+                }
             }
         }
 
@@ -64,11 +76,16 @@ bool DataSource::openConnection()
             throw CommonException("Database migration failed");
         }
 
+        if(integrityCheck() == false) {
+            throw CommonException("Database integrity check failed");
+        }
+
         result = true;
     }
     catch(const CommonException& e)
     {
         logText(LVL_ERROR, QString("DataSource Open Exception: %1 [%2]").arg(e.message()).arg(QSqlError(_db.lastError()).databaseText()));
+        QSqlDatabase::removeDatabase(_connectionName);
         result = false;
     }
 
@@ -79,22 +96,10 @@ bool DataSource::closeConnection()
 {
     bool result = false;
 
-    try
-    {
-        if(_db.isOpen() == false) {
-            throw CommonException("Database is not open");
-        }
-
+    if(_db.isOpen() == false) {
         _db.close();
-
         QSqlDatabase::removeDatabase(_connectionName);
-
         result = true;
-    }
-    catch(const CommonException& e)
-    {
-        logText(LVL_ERROR, QString("DataSource Open Exception: %1 [%2]").arg(e.message()).arg(QSqlError(_db.lastError()).databaseText()));
-        result = false;
     }
 
     return result;
@@ -117,6 +122,34 @@ QString DataSource::errorText() const
         output << "(Native Error: " << _nativeError << ") ";
     }
     return result;
+}
+
+bool DataSource::isSqlite(const QString& filename)
+{
+    if (!QFile::exists(filename)) {
+        return false;
+    }
+
+    QString connectionName = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+    db.setDatabaseName(filename);
+
+    if (!db.open()) {
+        QSqlDatabase::removeDatabase(connectionName);
+        return false;
+    }
+
+    // Try a simple query to check for validity
+    QSqlQuery query(db);
+    if (!query.exec("PRAGMA integrity_check;")) {
+        db.close();
+        QSqlDatabase::removeDatabase(connectionName);
+        return false;
+    }
+
+    db.close();
+    QSqlDatabase::removeDatabase(connectionName);
+    return true;
 }
 
 QSqlQuery DataSource::prepareQuery(const QString& sql, bool* success)

@@ -27,6 +27,7 @@ public:
         QObject(),
         LoggingBaseClass("db"),
         _credentials(credentials) {}
+    virtual ~DataSource();
 
     virtual bool openConnection();
     virtual bool closeConnection();
@@ -39,7 +40,12 @@ public:
     QString connectionName() const { return _connectionName; }
     void setConnectionName(const QString& value) { _connectionName = value; }
 
+    bool createOnOpenFailure() const { return _createOnOpenFailure; }
+    void setCreateOnOpenFailure(bool value) { _createOnOpenFailure = value; }
+
     QString errorText() const;
+
+    static bool isSqlite(const QString& filename);
 
 protected:
     QSqlQuery prepareQuery(const QString& sql, bool* success = nullptr);
@@ -80,6 +86,8 @@ private:
 
     DatabaseCredentials _credentials;
     QString _connectionName;
+
+    bool _createOnOpenFailure = true;
 
     QString _dataSourceError;
     QString _driverError;
