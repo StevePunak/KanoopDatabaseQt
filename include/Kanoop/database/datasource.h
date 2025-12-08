@@ -64,6 +64,7 @@ protected:
     void setDataSourceError(const QString& value) { _dataSourceError = value; }
 
     bool recreateSqliteDatabase();
+    virtual bool executePostCreateScripts() { return true; }
 
     bool isSqlite() const { return _credentials.isSqlite(); }
 

@@ -365,6 +365,10 @@ void DataSource::createSqliteDatabase()
     if(executeMultiple(parser.statements()) == false) {
         throw CommonException("Failed to execute one or more create queries");
     }
+
+    if(executePostCreateScripts() == false) {
+        throw CommonException("Failed to execute post create scripts");
+    }
 }
 
 bool DataSource::setSqliteForeignKeyChecking(bool value)
