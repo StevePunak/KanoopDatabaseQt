@@ -96,7 +96,7 @@ bool DataSource::closeConnection()
 {
     bool result = false;
 
-    if(_db.isOpen() == false) {
+    if(_db.isOpen() == true) {
         _db.close();
         QSqlDatabase::removeDatabase(_connectionName);
         result = true;
