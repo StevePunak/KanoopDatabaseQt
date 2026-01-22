@@ -378,3 +378,25 @@ bool DataSource::setSqliteForeignKeyChecking(bool value)
     executeQuery(sql, &result);
     return result;
 }
+
+template<typename T>
+QString DataSource::commaDelimitedList(const QList<T>& list)
+{
+    QString result;
+    QTextStream output(&result);
+    for(int i = 0;i < list.length();i++) {
+        output << '\''
+               << list.at(i)
+               << '\'';
+        if(i < list.length() - 1) {
+            output << ',';
+        }
+    }
+    return result;
+}
+
+// Instantiations to allow in-source templates
+template QString DataSource::commaDelimitedList(const QList<uint8_t>&);
+template QString DataSource::commaDelimitedList(const QList<int>&);
+template QString DataSource::commaDelimitedList(const QList<uint32_t>&);
+template QString DataSource::commaDelimitedList(const QList<uint64_t>&);

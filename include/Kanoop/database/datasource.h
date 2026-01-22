@@ -73,6 +73,9 @@ protected:
 
     QSqlDatabase _db;
 
+    template <typename T>
+    static QString commaDelimitedList(const QList<T> &list);
+
     static QString commaDelimitedIntList(const QList<int> &list);
     static QString commaDelimitedUuidList(const QList<QUuid>& list);
     static QString commaDelimitedStringList(const QStringList& list);
