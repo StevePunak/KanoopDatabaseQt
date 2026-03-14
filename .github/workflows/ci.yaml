@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "**"
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+env:
+  QT_VERSION: "6.10.1"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: KanoopDatabaseQt
+
+      - name: Checkout KanoopCommonQt
+        uses: actions/checkout@v4
+        with:
+          repository: StevePunak/KanoopCommonQt
+          path: KanoopCommonQt
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            cmake ninja-build build-essential \
+            libgl1-mesa-dev libglu1-mesa-dev
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+
+      - name: Create workspace CMakeLists.txt
+        run: |
+          cat > CMakeLists.txt << 'EOF'
+          cmake_minimum_required(VERSION 3.16)
+          project(KanoopDatabaseQt-CI)
+          add_subdirectory(KanoopCommonQt)
+          add_subdirectory(KanoopDatabaseQt)
+          EOF
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" \
+            -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
