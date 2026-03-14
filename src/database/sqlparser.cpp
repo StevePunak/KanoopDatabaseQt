@@ -17,7 +17,12 @@ void SqlParser::parse(const QString& sql)
         if( line.startsWith("--") ||
             line.startsWith('#') ||
             line.isEmpty()) {
-            startNewStatement();
+            // Only flush if we have no accumulated lines (between statements).
+            // If we're mid-statement, just skip the comment/blank line.
+            if(_working.isEmpty()) {
+                continue;
+            }
+            // Inside a statement — skip comment but don't flush
             continue;
         }
 

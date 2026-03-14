@@ -141,7 +141,8 @@ bool DataSource::isSqlite(const QString& filename)
 
     // Try a simple query to check for validity
     QSqlQuery query(db);
-    if (!query.exec("PRAGMA integrity_check;")) {
+    if (!query.exec("PRAGMA integrity_check;") || !query.next() ||
+        query.value(0).toString().compare("ok", Qt::CaseInsensitive) != 0) {
         db.close();
         QSqlDatabase::removeDatabase(connectionName);
         return false;
@@ -208,7 +209,7 @@ bool DataSource::querySuccessful(const QSqlQuery& query)
 
 bool DataSource::executeMultiple(const QStringList& queries)
 {
-    bool result = false;
+    bool result = true;
     for(const QString& statement : queries) {
         executeQuery(statement, &result);
         if(result == false) {
@@ -264,9 +265,7 @@ QString DataSource::commaDelimitedIntList(const QList<int>& list)
     QString result;
     QTextStream output(&result);
     for(int i = 0;i < list.length();i++) {
-        output << '\''
-               << list.at(i)
-               << '\'';
+        output << list.at(i);
         if(i < list.length() - 1) {
             output << ',';
         }
@@ -295,7 +294,7 @@ QString DataSource::commaDelimitedStringList(const QStringList& list)
     QTextStream output(&result);
     for(int i = 0;i < list.length();i++) {
         output << '\''
-               << list.at(i)
+               << escapedString(list.at(i))
                << '\'';
         if(i < list.length() - 1) {
             output << ',';
@@ -306,17 +305,16 @@ QString DataSource::commaDelimitedStringList(const QStringList& list)
 
 QString DataSource::escapedString(const QString& unescaped)
 {
-    QString utfString = unescaped.toLocal8Bit();
     QString result;
     QTextStream output(&result);
 
-    for(int i = 0;i < utfString.length();i++) {
-        QChar thisChar = utfString.at(i).toLatin1();
+    for(int i = 0;i < unescaped.length();i++) {
+        QChar thisChar = unescaped.at(i);
         if(thisChar == '\'') {
             output << '\'';
             output << thisChar;
         }
-        else if(thisChar == 0) {
+        else if(thisChar.isNull()) {
             output << '?';
         }
         else {
@@ -385,9 +383,7 @@ QString DataSource::commaDelimitedList(const QList<T>& list)
     QString result;
     QTextStream output(&result);
     for(int i = 0;i < list.length();i++) {
-        output << '\''
-               << list.at(i)
-               << '\'';
+        output << list.at(i);
         if(i < list.length() - 1) {
             output << ',';
         }
