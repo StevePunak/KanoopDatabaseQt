@@ -1,0 +1,4 @@
+*.bak
+*.autosave
+build/
+docs/html/
