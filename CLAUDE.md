@@ -114,11 +114,81 @@ if(parser.isValid()) {
 ```
 Pitfalls: no awareness of `;` inside string literals — assumes well-formed SQL.
 
+## Migration pattern
+
+The library exposes the lifecycle hooks but does **not** impose a version scheme. Each `openConnection()` flows:
+
+```
+openConnection()
+  └─ (SQLite-only) if file missing && createOnOpenFailure
+       └─ createSqliteDatabase()
+            └─ runs createSql()                  // your full current schema
+            └─ runs executePostCreateScripts()   // seed data, indexes, etc.
+  └─ _db.open()
+  └─ (SQLite-only) enable foreign keys
+  └─ migrate()                                   // your hook — bring older DBs forward
+  └─ integrityCheck()                            // your hook — fail to refuse the open
+```
+
+The standard pattern subclasses use:
+
+1. **`createSql()`** returns the SQL for the *current* schema — used on first creation and any time the database is rebuilt. Keep it in sync with the result of every applied migration. Multiple statements separated by `;` are fine; `executeMultiple()` parses them.
+
+2. **Schema version** is tracked by the subclass. Two common approaches:
+
+   **A — `PRAGMA user_version`** (SQLite only, simplest):
+   ```cpp
+   int MyDatabase::schemaVersion() {
+       QSqlQuery q = executeQuery("PRAGMA user_version");
+       q.next();
+       return q.value(0).toInt();
+   }
+   void MyDatabase::setSchemaVersion(int v) {
+       executeQuery(QString("PRAGMA user_version = %1").arg(v));
+   }
+   ```
+
+   **B — A `schema_version` table** (portable across SQLite/MySQL/PostgreSQL):
+   ```sql
+   CREATE TABLE schema_version (version INTEGER NOT NULL);
+   INSERT INTO schema_version (version) VALUES (1);
+   ```
+   Read/write it with regular queries. Make sure `createSql()` creates the table at the current version.
+
+3. **`migrate()`** reads the current version and applies steps in order:
+   ```cpp
+   bool MyDatabase::migrate() override {
+       const int kCurrentVersion = 3;
+       int v = schemaVersion();
+       if(v == kCurrentVersion) return true;
+
+       _db.transaction();
+       try {
+           if(v < 1) { executeMultiple(_v1Statements); v = 1; }
+           if(v < 2) { executeMultiple(_v2Statements); v = 2; }
+           if(v < 3) { executeMultiple(_v3Statements); v = 3; }
+           setSchemaVersion(v);
+           _db.commit();
+           return true;
+       }
+       catch(const CommonException& e) {
+           _db.rollback();
+           logText(LVL_ERROR, QString("Migration failed at v%1: %2").arg(v).arg(e.message()));
+           return false;
+       }
+   }
+   ```
+
+4. **Recreate-on-failure (optional escape hatch).** If `migrate()` returns `false`, `openConnection()` fails. Some applications then fall back to `recreateSqliteDatabase()` (drops the file, re-runs `createSql()`) and reopen — accepting data loss to keep the app usable. This is a downstream policy decision, not a library default. If you do it, log loudly and consider backing the file up first.
+
+5. **Each migration step is idempotent and additive.** Use `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN ...`, and check for existing columns before adding. Never delete data inside a step you can't undo.
+
+6. **Test migrations against populated data**, not just empty databases. `migrate()` is called on every open and a bug here will hit users on upgrade, not on first install.
+
 ## Common gotchas
 
 - **Thread affinity check is silent.** Operations from the wrong thread log to the Kanoop logger and return `false` — they do not throw. If a query "fails" mysteriously and the log shows a thread mismatch, you're calling from the wrong thread; spin up a thread-local `DataSource`.
-- **Always test migrations against populated data.** `migrate()` runs on every `openConnection()`. A buggy migration on a populated database can corrupt it. Downstream subclasses that implement a recreate-on-failure path will silently wipe the user's data — test migrations before merging.
-- **No transaction wrapper.** If you need atomic multi-statement operations, use `QSqlDatabase::transaction()`/`commit()`/`rollback()` directly via `database()`.
+- **No transaction wrapper.** If you need atomic multi-statement operations, use `QSqlDatabase::transaction()`/`commit()`/`rollback()` directly via `database()` — `migrate()` is the most common place this matters.
 - **Connection name collisions.** Qt's `QSqlDatabase` registry is global. If two `DataSource`s share a `connectionName` (default is auto-generated, but be careful when you set one manually), the second open will replace the first.
 - **Never hardcode credentials.** Read from config / environment at runtime. Don't check `.db` files with embedded credentials into the repo.
 - **SQLite foreign keys.** Disabled by default in SQLite, but `DataSource::openConnection()` enables them automatically. Don't rely on inserts that violate FKs "just working" — they will fail.
