@@ -52,7 +52,7 @@ public:
     /** @brief Return true if the database connection is currently open.
      *  @return true if connected.
      */
-    bool isOpen() { return _db.isOpen(); }
+    bool isOpen() const { return _db.isOpen(); }
 
     /** @brief Get the current database credentials.
      *  @return The stored DatabaseCredentials.
