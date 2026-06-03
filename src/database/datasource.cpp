@@ -85,6 +85,7 @@ bool DataSource::openConnection()
     catch(const CommonException& e)
     {
         logText(LVL_ERROR, QString("DataSource Open Exception: %1 [%2]").arg(e.message()).arg(QSqlError(_db.lastError()).databaseText()));
+        _db = QSqlDatabase();
         QSqlDatabase::removeDatabase(_connectionName);
         result = false;
     }
@@ -98,6 +99,7 @@ bool DataSource::closeConnection()
 
     if(_db.isOpen() == true) {
         _db.close();
+        _db = QSqlDatabase();
         QSqlDatabase::removeDatabase(_connectionName);
         result = true;
     }
@@ -131,26 +133,21 @@ bool DataSource::isSqlite(const QString& filename)
     }
 
     QString connectionName = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
-    db.setDatabaseName(filename);
-
-    if (!db.open()) {
-        QSqlDatabase::removeDatabase(connectionName);
-        return false;
+    bool valid = false;
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+        db.setDatabaseName(filename);
+        if(db.open() == true) {
+            QSqlQuery query(db);
+            if(query.exec("PRAGMA integrity_check;") && query.next() &&
+               query.value(0).toString().compare("ok", Qt::CaseInsensitive) == 0) {
+                valid = true;
+            }
+            db.close();
+        }
     }
-
-    // Try a simple query to check for validity
-    QSqlQuery query(db);
-    if (!query.exec("PRAGMA integrity_check;") || !query.next() ||
-        query.value(0).toString().compare("ok", Qt::CaseInsensitive) != 0) {
-        db.close();
-        QSqlDatabase::removeDatabase(connectionName);
-        return false;
-    }
-
-    db.close();
     QSqlDatabase::removeDatabase(connectionName);
-    return true;
+    return valid;
 }
 
 QSqlQuery DataSource::prepareQuery(const QString& sql, bool* success)
