@@ -393,3 +393,5 @@ template QString DataSource::commaDelimitedList(const QList<uint8_t>&);
 template QString DataSource::commaDelimitedList(const QList<int>&);
 template QString DataSource::commaDelimitedList(const QList<uint32_t>&);
 template QString DataSource::commaDelimitedList(const QList<uint64_t>&);
+
+#include "Kanoop/database/moc_datasource.cpp"
