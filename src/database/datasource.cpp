@@ -326,7 +326,7 @@ bool DataSource::checkExecutingThread() const
     bool result = (int64_t)QThread::currentThreadId() == _threadId;
     if(result == false) {
         logText(LVL_ERROR, QString(
-                    "ERROR: Executing thread for database connection %1 is not the thread use to open the connection. "
+                    "ERROR: Executing thread for database connection %1 is not the thread used to open the connection. "
                     "QSqlDatabase is not thread-safe.")
                 .arg(_connectionName));
     }
