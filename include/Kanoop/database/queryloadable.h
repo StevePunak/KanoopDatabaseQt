@@ -21,9 +21,10 @@ public:
     virtual bool loadFromQuery(const QSqlQuery& query) = 0;
 
 protected:
-    /** @brief Convert a QVariant database value to a UTC QDateTime.
+    /** @brief Label the value's date and time fields as UTC. The stored column must already hold UTC
+     *         wall clock; the fields are kept as they are and only the zone is set.
      *  @param value The QVariant containing the datetime value.
-     *  @return The corresponding QDateTime in UTC.
+     *  @return The value's date and time fields carrying the UTC time zone.
      */
     static QDateTime utcTime(const QVariant& value);
 

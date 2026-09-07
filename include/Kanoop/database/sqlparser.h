@@ -16,8 +16,8 @@ public:
      */
     QStringList statements() const { return _statements; }
 
-    /** @brief Return true if parsing completed successfully.
-     *  @return true if the SQL was parsed without error.
+    /** @brief Return true if the parse extracted at least one statement.
+     *  @return true if statements() is non-empty.
      */
     bool isValid() const { return _valid; }
 

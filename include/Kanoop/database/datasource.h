@@ -72,12 +72,12 @@ public:
      */
     void setConnectionName(const QString& value) { _connectionName = value; }
 
-    /** @brief Return true if the database should be created when opening fails.
-     *  @return true if auto-creation on failure is enabled.
+    /** @brief Return true if openConnection() creates the SQLite file when it is absent.
+     *  @return true if a missing SQLite file is created.
      */
     bool createOnOpenFailure() const { return _createOnOpenFailure; }
-    /** @brief Set whether to create the database when opening fails.
-     *  @param value true to auto-create on failure.
+    /** @brief Set whether openConnection() creates the SQLite file when it is absent.
+     *  @param value true to create a missing SQLite file; false to fail the open.
      */
     void setCreateOnOpenFailure(bool value) { _createOnOpenFailure = value; }
 
@@ -158,7 +158,7 @@ protected:
      */
     void setDataSourceError(const QString& value) { _dataSourceError = value; }
 
-    /** @brief Delete and recreate the SQLite database file from createSql().
+    /** @brief Reopen the SQLite file and execute createSql() and the post-create scripts against it.
      *  @return true on success.
      */
     bool recreateSqliteDatabase();
@@ -173,9 +173,10 @@ protected:
      */
     bool isSqlite() const { return _credentials.isSqlite(); }
 
-    /** @brief Convert a QVariant database value to a UTC QDateTime.
+    /** @brief Label the value's date and time fields as UTC. The stored column must already hold UTC
+     *         wall clock; the fields are kept as they are and only the zone is set.
      *  @param value The QVariant containing the datetime value.
-     *  @return The corresponding QDateTime in UTC.
+     *  @return The value's date and time fields carrying the UTC time zone.
      */
     static QDateTime utcTime(const QVariant& value);
 
@@ -212,9 +213,9 @@ protected:
      */
     static QString commaDelimitedStringList(const QStringList& list);
 
-    /** @brief Escape special characters in a string for safe inclusion in SQL.
+    /** @brief Double each single quote in the string and replace each NUL with '?'.
      *  @param unescaped The raw string.
-     *  @return The escaped string.
+     *  @return The string with single quotes doubled and NUL characters replaced.
      */
     static QString escapedString(const QString& unescaped);
 
