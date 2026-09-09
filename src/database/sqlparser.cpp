@@ -17,9 +17,6 @@ void SqlParser::parse(const QString& sql)
         if( line.startsWith("--") ||
             line.startsWith('#') ||
             line.isEmpty()) {
-            if(_working.isEmpty()) {
-                continue;
-            }
             continue;
         }
 
